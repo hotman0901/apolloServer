@@ -1,4 +1,5 @@
 const { ApolloServer, gql } = require('apollo-server');
+const fetch = require('isomorphic-fetch')
 
 // This is a (sample) collection of books we'll be able to query
 // the GraphQL server for.  A more complete example might fetch
@@ -29,6 +30,8 @@ const typeDefs = gql`
     # (A "Mutation" type will be covered later on.)
     type Query {
         books: [Book]
+        hello: String
+        mockedString: String
     }
 `;
 
@@ -36,14 +39,21 @@ const typeDefs = gql`
 // schema.  We'll retrieve books from the "books" array above.
 const resolvers = {
     Query: {
-        books: () => books
+        books: () => books,
+        hello: () =>
+            fetch('https://fourtonfish.com/hellosalut/?mode=auto')
+                .then(res => res.json())
+                .then(data => data.hello)
     }
 };
 
 // In the most basic sense, the ApolloServer can be started
 // by passing type definitions (typeDefs) and the resolvers
 // responsible for fetching the data for those types.
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+});
 
 // This `listen` method launches a web-server.  Existing apps
 // can utilize middleware options, which we'll discuss later.
