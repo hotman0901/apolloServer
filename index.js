@@ -2,9 +2,14 @@ const {
     ApolloServer,
     gql,
     AuthenticationError,
-    UserInputError
+    UserInputError,
+    PubSub
 } = require('apollo-server');
 const fetch = require('isomorphic-fetch');
+
+// 訂閱
+const pubsub = new PubSub();
+const SOMETHING_CHANGED_TOPIC = 'something_changed';
 
 // This is a (sample) collection of books we'll be able to query
 // the GraphQL server for.  A more complete example might fetch
@@ -45,11 +50,27 @@ const typeDefs = gql`
     type Mutation {
         userInputError(input: String): String
     }
+
+    # 訂閱
+    type Subscription {
+        newMessage: String
+    }
+
+    type Post {
+        author: String
+        comment: String
+    }
 `;
 
 // Resolvers define the technique for fetching the types in the
 // schema.  We'll retrieve books from the "books" array above.
 const resolvers = {
+    // 訂閱
+    Subscription: {
+        newMessage: {
+            subscribe: () => pubsub.asyncIterator(SOMETHING_CHANGED_TOPIC)
+        }
+    },
     Query: {
         books: () => {
             return books;
@@ -100,3 +121,13 @@ const server = new ApolloServer({
 server.listen().then(({ url }) => {
     console.log(`🚀  Server ready at ${url}`);
 });
+
+
+// 測試訂閱用
+setInterval(
+    () =>
+        pubsub.publish(SOMETHING_CHANGED_TOPIC, {
+            newMessage: new Date().toString()
+        }),
+    1000
+);
