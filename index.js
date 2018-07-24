@@ -76,6 +76,9 @@ const resolvers = {
             return books;
         },
         booksTitle: (parent, args, context, info) => {
+            console.log('================context共用參數===================');
+            console.log(context);
+            console.log('================context共用參數====================');
             return books.filter(obj => {
                 return obj.title === args.title;
             });
@@ -117,7 +120,11 @@ const server = new ApolloServer({
     formatResponse: response => {
         console.log('formatResponse:', response);
         return response;
-    }
+    },
+    // 共用變數，之後傳遞到resolver內的context
+    context: ({ req }) => ({
+        authScope: 'yayayayayay'
+    })
 });
 
 // This `listen` method launches a web-server.  Existing apps
