@@ -1,4 +1,9 @@
-const { ApolloServer, gql } = require('apollo-server');
+const {
+    ApolloServer,
+    gql,
+    AuthenticationError,
+    UserInputError
+} = require('apollo-server');
 const fetch = require('isomorphic-fetch');
 
 // This is a (sample) collection of books we'll be able to query
@@ -33,6 +38,12 @@ const typeDefs = gql`
         booksTitle(title: String!): [Book]
         hello: String
         mockedString: String
+        readError: String
+        authenticationError: String
+    }
+
+    type Mutation {
+        userInputError(input: String): String
     }
 `;
 
@@ -51,7 +62,24 @@ const resolvers = {
         hello: () =>
             fetch('https://fourtonfish.com/hellosalut/?mode=auto')
                 .then(res => res.json())
-                .then(data => data.hello)
+                .then(data => data.hello),
+        readError: (parent, args, context) => {
+            fs.readFileSync('/does/not/exist');
+        },
+        // 登入error
+        authenticationError: (parent, args, context) => {
+            throw new AuthenticationError('must authenticate');
+        }
+    },
+    Mutation: {
+        // 輸入erroe
+        userInputError: (parent, args, context, info) => {
+            if (args.input !== 'expected') {
+                throw new UserInputError('Form Arguments invalid', {
+                    invalidArgs: Object.keys(args)
+                });
+            }
+        }
     }
 };
 
@@ -60,7 +88,11 @@ const resolvers = {
 // responsible for fetching the data for those types.
 const server = new ApolloServer({
     typeDefs,
-    resolvers
+    resolvers,
+    formatError: error => {
+        console.log(error);
+        return new Error('Internal server error');
+    }
 });
 
 // This `listen` method launches a web-server.  Existing apps
