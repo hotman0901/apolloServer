@@ -113,6 +113,10 @@ const server = new ApolloServer({
     formatError: error => {
         console.log(error);
         return new Error('Internal server error');
+    },
+    formatResponse: response => {
+        console.log('formatResponse:', response);
+        return response;
     }
 });
 
@@ -121,7 +125,6 @@ const server = new ApolloServer({
 server.listen().then(({ url }) => {
     console.log(`🚀  Server ready at ${url}`);
 });
-
 
 // 測試訂閱用
 setInterval(
