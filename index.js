@@ -124,7 +124,14 @@ const server = new ApolloServer({
     // 共用變數，之後傳遞到resolver內的context
     context: ({ req }) => ({
         authScope: 'yayayayayay'
-    })
+    }),
+    playground: {
+        settings: {
+            'editor.theme': 'dark'
+        }
+    },
+    // introspection: false,
+    // playground: false
 });
 
 // This `listen` method launches a web-server.  Existing apps
