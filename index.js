@@ -7,6 +7,10 @@ const {
 } = require('apollo-server');
 const fetch = require('isomorphic-fetch');
 
+const { GraphQLScalarType } = require('graphql');
+const { Kind } = require('graphql/language');
+const _ = require('lodash');
+
 // 訂閱
 const pubsub = new PubSub();
 const SOMETHING_CHANGED_TOPIC = 'something_changed';
@@ -45,6 +49,7 @@ const typeDefs = gql`
         mockedString: String
         readError: String
         authenticationError: String
+        scalarBooks(title: Date!): Comment
     }
 
     type Mutation {
@@ -60,7 +65,21 @@ const typeDefs = gql`
         author: String
         comment: String
     }
+
+    # 自定義型態
+    scalar Date
+
+    type Comment {
+        id: Int
+        createDate: Date
+    }
 `;
+
+// 測試scalar資料用
+const scalarDateList = {
+    id: 99,
+    createDate: 153250252999
+}
 
 // Resolvers define the technique for fetching the types in the
 // schema.  We'll retrieve books from the "books" array above.
@@ -93,6 +112,11 @@ const resolvers = {
         // 登入error
         authenticationError: (parent, args, context) => {
             throw new AuthenticationError('must authenticate');
+        },
+        scalarBooks: (parent, args, context, info) => {
+            // 有透過parseLiteral 更新過
+            console.log('args:', args)
+            return scalarDateList;
         }
     },
     Mutation: {
@@ -104,7 +128,46 @@ const resolvers = {
                 });
             }
         }
-    }
+    },
+
+    // 自定義型態用
+    Date: new GraphQLScalarType({
+        name: 'Date',
+        description: 'Date custom scalar type',
+        // 還不曉得這個功能
+        parseValue(value) {
+            console.log('================1====================')
+            console.log(value)
+            console.log('================1====================')
+            return new Date();
+        },
+        // serialize 將資料輸出給clinet端
+        serialize(value) {
+            // db 資料，可以先在這了做formate船回到client端
+            console.log('================2====================')
+            console.log(value)
+            console.log('=================2===================')
+            if (_.isString(value) && /^\d*$/.test(value)) {
+                return parseInt(value, 0);
+            } else if (_.isInteger(value)) {
+                return value;
+            }
+            return value;
+        },
+        parseLiteral(ast) {
+            // 只要參數有這個type 就會跑近來
+            // 這裡會取得在前端發送的參數
+            console.log('================3====================')
+            console.log(ast)
+            console.log('================3===================')
+            // 這裡是可以update client端輸入的參數
+            // update過後的就會直接更新到args的參數
+            if (ast.kind === Kind.INT) {
+                return new Date(parseInt(ast.value, 10));
+            }
+            return null;
+        }
+    }),
 };
 
 // In the most basic sense, the ApolloServer can be started
